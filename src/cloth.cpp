@@ -176,15 +176,17 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 		node->position = node->position + (1 - cp->damping / 100) * (node->position - node->last_position) + node->forces / mass * delta_t * delta_t;
 		node->last_position = temp;
 		node->forces *= 0;//clear forces
+
+		// TODO (Part 4): Handle self-collisions.
+
+
+		// (Part 3): Handle collisions with other primitives.
+		for (int i = 0; i < collision_objects->size(); i++)
+		{
+			auto ptr = *(collision_objects + i)->begin();
+			ptr->collide(*node);
+		}
 	}
-
-
-	// TODO (Part 4): Handle self-collisions.
-
-
-	// TODO (Part 3): Handle collisions with other primitives.
-
-
 	// (Part 2): Constrain the changes to be such that the spring does not change
 	// in length more than 10% per timestep [Provot 1995].
 	for (auto s = springs.begin(); s < springs.end(); s++)
@@ -197,10 +199,11 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 
 		Vector3D v = s->pm_a->position - s->pm_b->position;
 		double dist = v.norm();
+		double max_nu = 0.1;
 		double nu = (dist - s->rest_length) / s->rest_length;
-		if (nu > 0.1)
+		if (nu > max_nu)
 		{
-			double fix_dist = (dist - 1.1 * s->rest_length);
+			double fix_dist = dist - (max_nu + 1.0) * s->rest_length;
 			if (!(s->pm_a->pinned && s->pm_b->pinned))
 			{
 				if (s->pm_a->pinned)
@@ -213,8 +216,8 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 				}
 				else
 				{
-					s->pm_a->position -= fix_dist * v/2;
-					s->pm_b->position += fix_dist * v/2;
+					s->pm_a->position -= fix_dist * v / 2;
+					s->pm_b->position += fix_dist * v / 2;
 				}
 			}
 		}
