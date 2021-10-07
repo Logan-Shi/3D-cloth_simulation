@@ -152,7 +152,7 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 
 		Vector3D v = s->pm_a->position - s->pm_b->position;
 		double dist = v.norm();
-		if (dist > s->rest_length)
+		if (true || dist > s->rest_length)
 		{
 			double ks_force = cp->ks * (dist - s->rest_length);
 			if (s->spring_type == BENDING)
