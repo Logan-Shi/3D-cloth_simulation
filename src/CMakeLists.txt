@@ -84,7 +84,7 @@ if(APPLE)
 endif(APPLE)
 
 # Put executable in build directory root
-set(EXECUTABLE_OUTPUT_PATH ..)
+set(EXECUTABLE_OUTPUT_PATH ../../bin)
 
 # Install to project root
 install(TARGETS clothsim DESTINATION ${ClothSim_SOURCE_DIR})
