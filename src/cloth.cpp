@@ -35,102 +35,41 @@ void Cloth::buildGrid() {
 	Vector3D start = Vector3D(0, 0, 0);
 	double i_step = height / num_height_points;
 	double j_step = width / num_width_points;
+	srand(time(NULL));
 
-	if (orientation == HORIZONTAL)
+	for (uint16_t i = 0; i < num_height_points; i++)
 	{
-		for (uint16_t i = 0; i < num_height_points; i++)
+		for (uint16_t j = 0; j < num_width_points; j++)
 		{
-			for (uint16_t j = 0; j < num_width_points; j++)
-			{
-				Vector3D position = start + Vector3D(i * i_step, 1, j * j_step);
-				bool is_pinned = false;
-				for (auto ID : pinned)
-				{
-					is_pinned = is_pinned || (ID[0] == i && ID[1] == j);
-				}
-				point_masses.emplace_back(position, is_pinned);
-			}
-		}
-		PointMass* iter = &point_masses[0];
-		for (uint16_t i = 0; i < num_height_points; i++)
-		{
-			for (uint16_t j = 0; j < num_width_points; j++)
-			{
-				if (j > 0)
-				{
-					springs.emplace_back(iter, iter - 1, STRUCTURAL);
-				}
-				if (i > 0)
-				{
-					springs.emplace_back(iter, iter - num_width_points, STRUCTURAL);
-				}
-				if (i > 0 && j > 0)
-				{
-					springs.emplace_back(iter, iter - num_width_points - 1, SHEARING);
-				}
-				if (i > 0 && j < num_width_points - 1)
-				{
-					springs.emplace_back(iter, iter - num_width_points + 1, SHEARING);
-				}
-				if (j > 1)
-				{
-					springs.emplace_back(iter, iter - 2, BENDING);
-				}
-				if (i > 1)
-				{
-					springs.emplace_back(iter, iter - 2 * num_width_points, BENDING);
-				}
-				iter++;
-			}
+			double z = 1 / 50 * rand() - 1 / 100;
+			Vector3D position = start + Vector3D(
+				i * i_step,
+				(!orientation) ? 1 : j * j_step,
+				(!orientation) ? j * j_step : z);
+			bool is_pinned = false;
+			for (auto ID : pinned)
+				is_pinned = is_pinned || (ID[0] == i && ID[1] == j);
+			point_masses.emplace_back(position, is_pinned);
 		}
 	}
-	else
+	PointMass* iter = &point_masses[0];
+	for (uint16_t i = 0; i < num_height_points; i++)
 	{
-		for (uint16_t i = 0; i < num_height_points; i++)
+		for (uint16_t j = 0; j < num_width_points; j++)
 		{
-			for (uint16_t j = 0; j < num_width_points; j++)
-			{
-				double z = 1 / 500 * rand() - 1 / 1000;
-				Vector3D position = start + Vector3D(i * i_step, j * j_step, z);
-				bool is_pinned = false;
-				for (auto ID : pinned)
-				{
-					is_pinned = is_pinned || (ID[0] == i && ID[1] == j);
-				}
-				point_masses.emplace_back(position, is_pinned);
-			}
-		}
-		PointMass* iter = &point_masses[0];
-		for (uint16_t i = 0; i < num_height_points; i++)
-		{
-			for (uint16_t j = 0; j < num_width_points; j++)
-			{
-				if (j > 0)
-				{
-					springs.emplace_back(iter, iter - 1, STRUCTURAL);
-				}
-				if (i > 0)
-				{
-					springs.emplace_back(iter, iter - num_width_points, STRUCTURAL);
-				}
-				if (i > 0 && j > 0)
-				{
-					springs.emplace_back(iter, iter - num_width_points - 1, SHEARING);
-				}
-				if (i > 0 && j < num_width_points - 1)
-				{
-					springs.emplace_back(iter, iter - num_width_points + 1, SHEARING);
-				}
-				if (j > 1)
-				{
-					springs.emplace_back(iter, iter - 2, BENDING);
-				}
-				if (i > 1)
-				{
-					springs.emplace_back(iter, iter - 2 * num_width_points, BENDING);
-				}
-				iter++;
-			}
+			if (j > 0)
+				springs.emplace_back(iter, iter - 1, STRUCTURAL);
+			if (i > 0)
+				springs.emplace_back(iter, iter - num_width_points, STRUCTURAL);
+			if (i > 0 && j > 0)
+				springs.emplace_back(iter, iter - num_width_points - 1, SHEARING);
+			if (i > 0 && j < num_width_points - 1)
+				springs.emplace_back(iter, iter - num_width_points + 1, SHEARING);
+			if (j > 1)
+				springs.emplace_back(iter, iter - 2, BENDING);
+			if (i > 1)
+				springs.emplace_back(iter, iter - 2 * num_width_points, BENDING);
+			iter++;
 		}
 	}
 }
@@ -152,16 +91,14 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 
 		Vector3D v = s->pm_a->position - s->pm_b->position;
 		double dist = v.norm();
-		if (true || dist > s->rest_length)
-		{
-			double ks_force = cp->ks * (dist - s->rest_length);
-			if (s->spring_type == BENDING)
-			{
-				ks_force *= 0.2;
-			}
-			s->pm_a->forces -= ks_force * v / dist;
-			s->pm_b->forces += ks_force * v / dist;
-		}
+		bool extend = dist > s->rest_length;
+		double ks_force = cp->ks * (dist - s->rest_length);
+		if (!extend)
+			ks_force *= 0.05;
+		if (s->spring_type == BENDING)
+			ks_force *= 0.2;
+		s->pm_a->forces -= ks_force * v / dist;
+		s->pm_b->forces += ks_force * v / dist;
 	}
 
 	// (Part 2): Use Verlet integration to compute new point mass positions
