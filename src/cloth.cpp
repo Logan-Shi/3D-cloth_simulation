@@ -41,7 +41,7 @@ void Cloth::buildGrid() {
 	{
 		for (uint16_t j = 0; j < num_width_points; j++)
 		{
-			double z = 1 / 50 * rand() - 1 / 100;
+			double z = 1.0 / ((rand() % 10000) + 1000);
 			Vector3D position = start + Vector3D(
 				i * i_step,
 				(!orientation) ? 1 : j * j_step,
@@ -94,7 +94,7 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 		bool extend = dist > s->rest_length;
 		double ks_force = cp->ks * (dist - s->rest_length);
 		if (!extend)
-			ks_force *= 0.05;
+			ks_force *= 1.0;
 		if (s->spring_type == BENDING)
 			ks_force *= 0.2;
 		s->pm_a->forces -= ks_force * v / dist;
@@ -102,6 +102,7 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 	}
 
 	// (Part 2): Use Verlet integration to compute new point mass positions
+	build_spatial_map();
 	for (auto node = point_masses.begin(); node < point_masses.end(); node++)
 	{
 		if (node->pinned) continue;
@@ -114,8 +115,8 @@ void Cloth::simulate(double frames_per_sec, double simulation_steps, ClothParame
 		node->last_position = temp;
 		node->forces *= 0;//clear forces
 
-		// TODO (Part 4): Handle self-collisions.
-
+		// (Part 4): Handle self-collisions.
+		self_collide(*node, simulation_steps);
 
 		// (Part 3): Handle collisions with other primitives.
 		for (int i = 0; i < collision_objects->size(); i++)
@@ -167,19 +168,58 @@ void Cloth::build_spatial_map() {
 	}
 	map.clear();
 
-	// TODO (Part 4): Build a spatial map out of all of the point masses.
+	// (Part 4): Build a spatial map out of all of the point masses.
+	for (int p = 0; p < point_masses.size(); p++) {
+		PointMass* ptr = &point_masses[p];
+		float hkey = hash_position(ptr->position);
 
+		if (!map.count(hkey)) { //if it is already not in map using unordered map's count  
+			map[hkey] = new vector<PointMass*>(); //for a new key dynamically allocate memory for a point mass* vector
+		}
+		map[hkey]->push_back(ptr);
+	}
 }
 
 void Cloth::self_collide(PointMass& pm, double simulation_steps) {
-	// TODO (Part 4): Handle self-collision for a given point mass.
-
+	// (Part 4): Handle self-collision for a given point mass.
+	float hkey = hash_position(pm.position);
+	if (map.count(hkey)) { //if key exists in hashtable
+		Vector3D avg_correction(0, 0, 0);//apply corrections
+		int num_corrections = 0;
+		vector<PointMass*> hashedPMs = *map[hkey];
+		for (int p = 0; p < hashedPMs.size(); p++) {
+			PointMass* candidatePM = hashedPMs[p]; //get every point mass in current map[hash]'s pm vector
+			if (candidatePM->position == pm.position) //to prevent self collision
+				continue;
+			Vector3D PtoC = candidatePM->position - pm.position;
+			double separation = PtoC.norm(); //magnitude of vector from PM pos to candidate PM pos
+			double exceededDist = 2.0 * thickness - separation;
+			if (exceededDist > 0) { //too close, add contribution for this candidate PM to correction vector
+				Vector3D CtoPdir = pm.position - candidatePM->position;
+				CtoPdir.normalize(); //just need direction
+				avg_correction += (exceededDist * CtoPdir);
+				num_corrections++;
+			}
+		}
+		avg_correction /= (double)num_corrections; //to get average
+		if (num_corrections > 0) { //there are some corrections to be made (particles self colliding)
+			pm.position += avg_correction / simulation_steps; //apply avg correction scaled down by simulation steps
+		}
+	}
 }
 
 float Cloth::hash_position(Vector3D pos) {
-	// TODO (Part 4): Hash a 3D position into a unique float identifier that represents membership in some 3D box volume.
+	// (Part 4): Hash a 3D position into a unique float identifier that represents membership in some 3D box volume.
+	float h = 3 * height / num_height_points; //3 empirically proven constant for spatial hashing accuracy
+	float w = 3 * width / num_width_points;
+	float t = (h > w) ? h : w;
 
-	return 0.f;
+	float x_id = (pos.x - fmod(pos.x, w)) / w; //truncate x coordinate with remainder of pos.x/w to get to closest 3Dbox coords and divide over w (xrange dimension of box)
+	float y_id = (pos.y - fmod(pos.y, h)) / h;
+	float z_id = (pos.z - fmod(pos.z, t)) / t;
+
+	float result = x_id + y_id * h + z_id * w * h; // for an order sensitive, unique hash 
+	return result;
 }
 
 ///////////////////////////////////////////////////////
