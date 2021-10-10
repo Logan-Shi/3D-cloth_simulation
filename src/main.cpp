@@ -488,6 +488,8 @@ int main(int argc, char **argv) {
   // Attach callbacks to the GLFW window
 
   setGLFWCallbacks();
+  double previousTime = glfwGetTime();
+  int frameCount = 0;
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -496,6 +498,19 @@ int main(int argc, char **argv) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     app->drawContents();
+
+    // Measure speed
+    double currentTime = glfwGetTime();
+    frameCount++;
+    // If a second has passed.
+    if (currentTime - previousTime >= 1.0)
+    {
+        // Display the frame count here any way you want.
+        std::cout<<frameCount<<"\n";
+
+        frameCount = 0;
+        previousTime = currentTime;
+    }
 
     // Draw nanogui
     screen->drawContents();
