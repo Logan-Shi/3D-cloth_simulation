@@ -8,13 +8,13 @@
 using namespace std;
 using namespace CGL;
 
-#define SURFACE_OFFSET 0.0001
+#define SURFACE_OFFSET 0.01
 
 void Plane::collide(PointMass& pm) {
 	// (Part 3): Handle collisions with planes.
 	Vector3D v1 = pm.position - point;
 	Vector3D v2 = pm.last_position - point;
-	if (dot(v1, normal) * dot(v2, normal) < SURFACE_OFFSET)
+	if (dot(v1, normal) * dot(v2, normal) < SURFACE_OFFSET * SURFACE_OFFSET)
 	{
 		Vector3D proj = pm.position - normal * dot(v1, normal);
 		Vector3D target = (dot(v1, normal) < 0) ? proj + SURFACE_OFFSET * normal : proj - SURFACE_OFFSET * normal;
@@ -24,7 +24,7 @@ void Plane::collide(PointMass& pm) {
 }
 
 void Plane::render(GLShader& shader) {
-	nanogui::Color color(0.7f, 0.7f, 0.7f, 1.0f);
+	nanogui::Color color(0.0f, 0.0f, 0.7f, 1.0f);
 
 	Vector3f sPoint(point.x, point.y, point.z);
 	Vector3f sNormal(normal.x, normal.y, normal.z);
