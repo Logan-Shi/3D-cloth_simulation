@@ -1,7 +1,7 @@
 {
   "plane": {
     "point": [0, 0, 0],
-    "normal": [0, 1, 0],
+    "normal": [0, -1, 0],
     "friction": 0.5
   },
   "cloth": {
@@ -14,8 +14,8 @@
     "orientation": 1,
     "width": 1,
     "height": 1,
-    "num_width_points": 50,
-    "num_height_points": 50,
+    "num_width_points": 20,
+    "num_height_points": 20,
     "thickness": 0.0095
   }
 }

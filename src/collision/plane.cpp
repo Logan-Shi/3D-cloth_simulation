@@ -14,7 +14,7 @@ void Plane::collide(PointMass& pm) {
 	// (Part 3): Handle collisions with planes.
 	Vector3D v1 = pm.position - point;
 	Vector3D v2 = pm.last_position - point;
-	if (dot(v1, normal) * dot(v2, normal) < 0)
+	if (dot(v1, normal) * dot(v2, normal) < SURFACE_OFFSET)
 	{
 		Vector3D proj = pm.position - normal * dot(v1, normal);
 		Vector3D target = (dot(v1, normal) < 0) ? proj + SURFACE_OFFSET * normal : proj - SURFACE_OFFSET * normal;
